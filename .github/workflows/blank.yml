@@ -10,7 +10,7 @@ ASSOC_TAG  = 'mywebsit036f8-21'
 
 # 1. Call PA API to search "military thriller"
 payload = {
-    "Keywords": "military thriller",
+    "Keywords": "thriller",
     "PartnerTag": ASSOC_TAG,
     "PartnerType": "Associates",
     "Marketplace": "www.amazon.co.uk",
