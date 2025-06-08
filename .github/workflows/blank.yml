@@ -1,47 +1,23 @@
-import os
-import requests
-
-# Load secrets from environment variables
-ACCESS_KEY = os.environ['PA_API_KEY']
-SECRET_KEY = os.environ['PA_API_SECRET']
-PAGE_TOKEN = os.environ['FB_PAGE_TOKEN']
-PAGE_ID    = os.environ['PAGE_ID']
-ASSOC_TAG  = 'mywebsit036f8-21'
-
-# 1. Call PA API to search "thriller"
-def sign_and_post(payload):
-    # TODO: Implement HMAC-SHA256 signing per Amazon PA API docs
-    # For now, raise NotImplementedError
-    raise NotImplementedError("Amazon PA API signing not implemented.")
-
-payload = {
-    "Keywords": "thriller",
-    "PartnerTag": ASSOC_TAG,
-    "PartnerType": "Associates",
-    "Marketplace": "www.amazon.co.uk",
-    "Resources": ["ItemInfo.Title","ItemInfo.ByLineInfo","Images.Primary.Large","EditorialReviews"]
-}
-
-try:
-    resp = sign_and_post(payload)
-    item = resp['SearchResult']['Items'][0]
-
-    # 2. Extract data
-    title  = item['ItemInfo']['Title']['DisplayValue']
-    author = item['ItemInfo']['ByLineInfo']['Contributors'][0]['Name']
-    img    = item['Images']['Primary']['Large']['URL']
-    link   = item['DetailPageURL'] + f"?tag={ASSOC_TAG}"
-
-    # Pull the editorial review (first one)
-    ed = item['EditorialReviews']['EditorialReview'][0]['Content']
-    mini = ' '.join(ed.split('.')[:2]) + '.'  # first two sentences
-
-    post_text = f"🔫 **{title}** by {author}\n\n{mini}\n\nRead more: {link}"
-
-    # 3. Post to Facebook
-    img_data = requests.get(img).content
-    files = {'source': img_data}
-    data  = {'caption': post_text, 'access_token': PAGE_TOKEN}
-    requests.post(f"https://graph.facebook.com/v15.0/{PAGE_ID}/photos", data=data, files=files)
-except NotImplementedError as e:
-    print(e)
+name: Daily Thriller Post
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+      - name: Install deps
+        run: pip install requests
+      - name: Run Bot
+        env:
+          PA_API_KEY:    ${{ secrets.PA_API_KEY }}
+          PA_API_SECRET: ${{ secrets.PA_API_SECRET }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+          PAGE_ID:       ${{ secrets.PAGE_ID }}
+        run: python bot.py
