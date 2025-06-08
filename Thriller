@@ -1,0 +1,43 @@
+import os, requests, json
+from datetime import datetime
+
+# Load secrets
+ACCESS_KEY = os.environ['PA_API_KEY']
+SECRET_KEY = os.environ['PA_API_SECRET']
+PAGE_TOKEN = os.environ['FB_PAGE_TOKEN']
+PAGE_ID    = os.environ['PAGE_ID']
+ASSOC_TAG  = 'mywebsit036f8-21'
+
+# 1. Call PA API to search "military thriller"
+payload = {
+    "Keywords": "military thriller",
+    "PartnerTag": ASSOC_TAG,
+    "PartnerType": "Associates",
+    "Marketplace": "www.amazon.co.uk",
+    "Resources": ["ItemInfo.Title","ItemInfo.ByLineInfo","Images.Primary.Large","EditorialReviews"]
+}
+# You need to sign this request per Amazon docs. Here’s a minimal helper:
+def sign_and_post(payload):
+    # … implement HMAC-SHA256 signing per https://webservices.amazon.com/paapi5/documentation/sending-request.html …
+    # For brevity, assume you use a library or snippet from Amazon’s GitHub examples.
+    pass
+
+resp = sign_and_post(payload)
+item = resp['SearchResult']['Items'][0]
+
+# 2. Extract data
+title  = item['ItemInfo']['Title']['DisplayValue']
+author = item['ItemInfo']['ByLineInfo']['Contributors'][0]['Name']
+img    = item['Images']['Primary']['Large']['URL']
+link   = item['DetailPageURL'] + f"?tag={ASSOC_TAG}"
+
+# Pull the editorial review (first one)
+ed = item['EditorialReviews']['EditorialReview'][0]['Content']
+mini = ' '.join(ed.split('.')[:2]) + '.'  # first two sentences
+
+post_text = f"🔫 **{title}** by {author}\n\n{mini}\n\nRead more: {link}"
+
+# 3. Post to Facebook
+files = {'source': requests.get(img).content}
+data  = {'caption': post_text, 'access_token': PAGE_TOKEN}
+requests.post(f"https://graph.facebook.com/v15.0/{PAGE_ID}/photos", data=data, files=files)
